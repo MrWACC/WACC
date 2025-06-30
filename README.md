@@ -7,7 +7,7 @@ This repository includes multiple financial tools for market analysis and risk m
 
 ## 📊 Projects
 
-### 1. [African Sovereign Dashboard] (/workspaces/WACC/african sovereign dashboard)
+### 1. [African Sovereign Dashboard] (./workspaces/WACC/african sovereign dashboard)
 Interactive dashboard for African eurobonds and macro data.
 
 ### 2. [Exotic Option Pricer](./Exotic%20option%20pricer)
