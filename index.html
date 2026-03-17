@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FX Fair Value Platform</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-card: #1a2235;
+  --bg-hover: #243049;
+  --border: #2a3a55;
+  --text-primary: #e8ecf4;
+  --text-secondary: #8b95a8;
+  --text-muted: #5a6478;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59,130,246,0.15);
+  --green: #10b981;
+  --red: #ef4444;
+  --orange: #f59e0b;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── HEADER ─── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.header h1 {
+  font-size: 18px; font-weight: 700; letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.header .author { font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; }
+
+/* ─── PAIR TABS ─── */
+.pair-tabs {
+  display: flex; gap: 0; padding: 0 28px;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+}
+.pair-tab {
+  padding: 12px 24px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--text-secondary); border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.pair-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+.pair-tab.active {
+  color: var(--accent); border-bottom-color: var(--accent);
+  background: var(--accent-glow);
+}
+.pair-tab .flag { font-size: 16px; margin-right: 6px; }
+.pair-tab .val {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  margin-left: 8px; color: var(--text-muted);
+}
+.pair-tab .chg { font-size: 11px; margin-left: 4px; font-weight: 600; }
+.pair-tab .chg.up { color: var(--green); }
+.pair-tab .chg.down { color: var(--red); }
+
+/* ─── KPI CARDS ─── */
+.kpi-row {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 12px; padding: 20px 28px;
+}
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px;
+}
+.kpi-card .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.kpi-card .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px; font-weight: 700; margin-top: 6px;
+}
+.kpi-card .sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.kpi-card .value.green { color: var(--green); }
+.kpi-card .value.red { color: var(--red); }
+.kpi-card .value.blue { color: var(--accent); }
+.kpi-card .value.orange { color: var(--orange); }
+
+/* ─── GRID ─── */
+.grid { display: grid; gap: 16px; padding: 0 28px 28px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: 2fr 1fr; }
+.grid-full { grid-template-columns: 1fr; }
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 20px; position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  opacity: 0.5;
+}
+.card h3 {
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px;
+}
+.card canvas { width: 100% !important; max-height: 320px; }
+
+/* ─── MODEL TABLE ─── */
+.model-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.model-table th {
+  text-align: left; padding: 10px 12px; color: var(--text-muted);
+  font-weight: 500; font-size: 11px; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+}
+.model-table td {
+  padding: 10px 12px; border-bottom: 1px solid rgba(42,58,85,0.5);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.model-table tr:hover td { background: var(--bg-hover); }
+.weight-bar {
+  height: 6px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  display: inline-block; vertical-align: middle; margin-left: 8px;
+}
+
+/* ─── LOADING ─── */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; flex-direction: column; gap: 16px;
+}
+.loading .spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1200px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading"><div class="spinner"></div><div>Loading FX models...</div></div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let STATE = { pairs: [], data: {}, active: "EURUSD", charts: {} };
+const FLAGS = { EUR: "\u20AC", GBP: "\u00A3", USD: "$", JPY: "\u00A5", ZAR: "R", CAD: "C$" };
+
+// ════════════════════════════════════════
+// DATA FETCH
+// ════════════════════════════════════════
+async function loadAll() {
+  const pairsRes = await fetch("/api/pairs");
+  STATE.pairs = await pairsRes.json();
+  for (const p of STATE.pairs) {
+    const res = await fetch("/api/pair/" + p.pair);
+    STATE.data[p.pair] = await res.json();
+  }
+  STATE.active = STATE.pairs[0].pair;
+  render();
+}
+
+// ════════════════════════════════════════
+// CHART DEFAULTS
+// ════════════════════════════════════════
+const CHART_COLORS = {
+  spot: "#e8ecf4", fv: "#3b82f6", band1: "rgba(59,130,246,0.15)", band2: "rgba(59,130,246,0.06)",
+  green: "#10b981", red: "#ef4444", orange: "#f59e0b", purple: "#a855f7",
+  cyan: "#06b6d4", pink: "#ec4899", gray: "#5a6478",
+};
+const CHART_OPTS = {
+  responsive: true, maintainAspectRatio: false,
+  animation: { duration: 600 },
+  plugins: { legend: { labels: { color: "#8b95a8", font: { family: "Outfit", size: 11 } } } },
+  scales: {
+    x: { ticks: { color: "#5a6478", maxTicksLimit: 8, font: { size: 10 } }, grid: { color: "rgba(42,58,85,0.3)" } },
+    y: { ticks: { color: "#5a6478", font: { family: "JetBrains Mono", size: 10 } }, grid: { color: "rgba(42,58,85,0.3)" } },
+  },
+};
+
+function destroyCharts() {
+  Object.values(STATE.charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+  STATE.charts = {};
+}
+
+function makeLabels(dates, skip) {
+  return dates.map((d, i) => i % skip === 0 ? d.substring(0, 7) : "");
+}
+
+// ════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════
+function render() {
+  const app = document.getElementById("app");
+  const D = STATE.data[STATE.active];
+
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <h1>FX FAIR VALUE PLATFORM</h1>
+        <div class="subtitle">Multi-Currency Quantitative Framework &mdash; Yonga Yonga C.T.</div>
+      </div>
+      <div class="author">NEOMA Business School &bull; ${new Date().toLocaleDateString()}</div>
+    </div>
+
+    <div class="pair-tabs" id="tabs">
+      ${STATE.pairs.map(p => {
+        const cls = p.pair === STATE.active ? "active" : "";
+        const chgCls = p.misalign_pct > 0 ? "up" : "down";
+        const sign = p.misalign_pct > 0 ? "+" : "";
+        return `<div class="pair-tab ${cls}" onclick="switchPair('${p.pair}')">
+          <span class="flag">${FLAGS[p.base] || ""}</span>${p.pair}
+          <span class="val">${p.spot.toFixed(4)}</span>
+          <span class="chg ${chgCls}">${sign}${p.misalign_pct.toFixed(1)}%</span>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="label">Spot Rate</div>
+        <div class="value">${D.current.spot.toFixed(4)}</div>
+        <div class="sub">${D.pair}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Fair Value</div>
+        <div class="value blue">${D.current.fair_value.toFixed(4)}</div>
+        <div class="sub">Ensemble (${Object.keys(D.weights).length} models)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Misalignment</div>
+        <div class="value ${D.current.misalign_pct > 0 ? 'red' : 'green'}">${D.current.misalign_pct > 0 ? '+' : ''}${D.current.misalign_pct.toFixed(2)}%</div>
+        <div class="sub">${D.base} ${D.current.direction}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">GARCH Persistence</div>
+        <div class="value orange">${D.garch.persistence.toFixed(3)}</div>
+        <div class="sub">&alpha;=${D.garch.alpha.toFixed(3)} &beta;=${D.garch.beta.toFixed(3)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">VaR (95%)</div>
+        <div class="value">${(D.risk.var_95 * 100).toFixed(2)}%</div>
+        <div class="sub">Monthly</div>
+      </div>
+      <div class="kpi-card">
+        <div class="label">Extreme Episodes</div>
+        <div class="value">${D.misalignment.extreme_2s}</div>
+        <div class="sub">${D.misalignment.pct_2s}% of sample &gt;2&sigma;</div>
+      </div>
+    </div>
+
+    <div class="grid grid-full">
+      <div class="card"><h3>${D.pair} &mdash; Spot vs. Fair Value</h3><div style="height:320px"><canvas id="chartFV"></canvas></div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card"><h3>Model Comparison</h3><div style="height:300px"><canvas id="chartModels"></canvas></div></div>
+      <div class="card"><h3>Misalignment Z-Score</h3><div style="height:300px"><canvas id="chartZ"></canvas></div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card"><h3>12-Month Probabilistic Forecast</h3><div style="height:300px"><canvas id="chartFan"></canvas></div></div>
+      <div class="card"><h3>GARCH Conditional Volatility</h3><div style="height:300px"><canvas id="chartVol"></canvas></div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card"><h3>Variable Importance (OLS vs Lasso)</h3><div style="height:300px"><canvas id="chartCoef"></canvas></div></div>
+      <div class="card">
+        <h3>Model Performance</h3>
+        <table class="model-table">
+          <thead><tr><th>Model</th><th>R&sup2;</th><th>RMSE</th><th>Weight</th><th></th></tr></thead>
+          <tbody>
+            ${D.model_table.map(m => `<tr>
+              <td style="color:var(--text-primary);font-weight:500">${m.name}</td>
+              <td>${m.r2.toFixed(4)}</td>
+              <td>${m.rmse.toFixed(5)}</td>
+              <td>${(m.weight * 100).toFixed(1)}%</td>
+              <td><span class="weight-bar" style="width:${m.weight * 200}px"></span></td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">MISALIGNMENT STATS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;font-family:JetBrains Mono,monospace">
+            <div>|&epsilon;| &gt; 2&sigma;: <span style="color:var(--orange)">${D.misalignment.extreme_2s} obs</span></div>
+            <div>|&epsilon;| &gt; 3&sigma;: <span style="color:var(--red)">${D.misalignment.extreme_3s} obs</span></div>
+            <div>Mean Rev 6m: <span style="color:var(--green)">${D.misalignment.mean_rev_6m}%</span></div>
+            <div>Residual &sigma;: <span style="color:var(--text-primary)">${D.misalignment.sigma.toFixed(4)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-full">
+      <div class="card"><h3>Rolling Coefficients (Top 4 Drivers)</h3><div style="height:280px"><canvas id="chartRoll"></canvas></div></div>
+    </div>
+  `;
+
+  // Draw all charts after DOM is ready
+  setTimeout(drawCharts, 50);
+}
+
+// ════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════
+function drawCharts() {
+  destroyCharts();
+  const D = STATE.data[STATE.active];
+  const labels = makeLabels(D.dates, 24);
+  const N = D.dates.length;
+
+  // 1. FV Chart
+  const residStd = D.misalignment.sigma;
+  const band1_up = D.fair_value.map(v => +(v + residStd).toFixed(4));
+  const band1_dn = D.fair_value.map(v => +(v - residStd).toFixed(4));
+  const band2_up = D.fair_value.map(v => +(v + 2*residStd).toFixed(4));
+  const band2_dn = D.fair_value.map(v => +(v - 2*residStd).toFixed(4));
+
+  STATE.charts.fv = new Chart(document.getElementById("chartFV"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Spot", data: D.spot, borderColor: CHART_COLORS.spot, borderWidth: 1.5, pointRadius: 0, order: 1 },
+        { label: "Fair Value", data: D.fair_value, borderColor: CHART_COLORS.fv, borderWidth: 2, pointRadius: 0, order: 2 },
+        { label: "+1\u03c3", data: band1_up, borderColor: "transparent", backgroundColor: CHART_COLORS.band1, fill: "+1", pointRadius: 0, order: 3 },
+        { label: "-1\u03c3", data: band1_dn, borderColor: "transparent", backgroundColor: CHART_COLORS.band1, fill: "-1", pointRadius: 0, order: 4 },
+        { label: "+2\u03c3", data: band2_up, borderColor: "transparent", backgroundColor: CHART_COLORS.band2, fill: "+1", pointRadius: 0, order: 5 },
+        { label: "-2\u03c3", data: band2_dn, borderColor: "transparent", backgroundColor: CHART_COLORS.band2, fill: "-1", pointRadius: 0, order: 6 },
+      ],
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { display: true, labels: { color: "#8b95a8", font: { size: 10 }, filter: (item) => ["Spot","Fair Value"].includes(item.text) } } } },
+  });
+
+  // 2. Model Comparison
+  const modelColors = [CHART_COLORS.orange, CHART_COLORS.green, CHART_COLORS.purple, CHART_COLORS.cyan, CHART_COLORS.pink];
+  const modelNames = Object.keys(D.model_fitted);
+  STATE.charts.models = new Chart(document.getElementById("chartModels"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Spot", data: D.spot, borderColor: CHART_COLORS.spot, borderWidth: 1.5, pointRadius: 0 },
+        ...modelNames.map((name, i) => ({
+          label: name, data: D.model_fitted[name],
+          borderColor: modelColors[i % modelColors.length], borderWidth: 1, pointRadius: 0, borderDash: [4, 2],
+        })),
+      ],
+    },
+    options: CHART_OPTS,
+  });
+
+  // 3. Z-Score
+  const zColors = D.z_scores.map(z => z > 0 ? "rgba(239,68,68,0.7)" : "rgba(16,185,129,0.7)");
+  STATE.charts.z = new Chart(document.getElementById("chartZ"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Z-Score", data: D.z_scores, backgroundColor: zColors, borderWidth: 0 }],
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { display: false }, annotation: {} } },
+  });
+
+  // 4. Fan Chart
+  const fanLabels = Array.from({length: 13}, (_, i) => "M+" + i);
+  STATE.charts.fan = new Chart(document.getElementById("chartFan"), {
+    type: "line",
+    data: {
+      labels: fanLabels,
+      datasets: [
+        { label: "90% CI", data: D.fan_chart.p95, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.08)", fill: "+4", pointRadius: 0 },
+        { label: "80% CI", data: D.fan_chart.p90, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.12)", fill: "+2", pointRadius: 0 },
+        { label: "50% CI", data: D.fan_chart.p75, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.2)", fill: "+1", pointRadius: 0 },
+        { label: "Median", data: D.fan_chart.p50, borderColor: CHART_COLORS.fv, borderWidth: 2, borderDash: [6, 3], pointRadius: 0 },
+        { data: D.fan_chart.p25, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.2)", fill: false, pointRadius: 0, label: "" },
+        { data: D.fan_chart.p10, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.12)", fill: false, pointRadius: 0, label: "" },
+        { data: D.fan_chart.p5, borderColor: "transparent", backgroundColor: "rgba(59,130,246,0.08)", fill: false, pointRadius: 0, label: "" },
+      ],
+    },
+    options: { ...CHART_OPTS, plugins: { ...CHART_OPTS.plugins, legend: { labels: { filter: (item) => item.text && item.text.length > 0 } } } },
+  });
+
+  // 5. GARCH Vol
+  const absResid = D.residuals.map(r => Math.abs(r));
+  STATE.charts.vol = new Chart(document.getElementById("chartVol"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "|Residual|", data: absResid, borderColor: "rgba(139,149,168,0.4)", borderWidth: 1, pointRadius: 0, fill: { target: "origin", above: "rgba(139,149,168,0.08)" } },
+        { label: "GARCH \u03c3", data: D.garch.cond_vol, borderColor: CHART_COLORS.orange, borderWidth: 1.5, pointRadius: 0 },
+      ],
+    },
+    options: CHART_OPTS,
+  });
+
+  // 6. Coefficient Importance
+  const coefNames = D.coef_importance.map(c => c.name);
+  const olsCoefs = D.coef_importance.map(c => c.ols);
+  const lassoCoefs = D.coef_importance.map(c => c.lasso);
+  STATE.charts.coef = new Chart(document.getElementById("chartCoef"), {
+    type: "bar",
+    data: {
+      labels: coefNames,
+      datasets: [
+        { label: "OLS", data: olsCoefs, backgroundColor: "rgba(59,130,246,0.7)" },
+        { label: "Lasso", data: lassoCoefs, backgroundColor: "rgba(168,85,247,0.7)" },
+      ],
+    },
+    options: { ...CHART_OPTS, indexAxis: "y" },
+  });
+
+  // 7. Rolling Coefficients
+  const rollKeys = Object.keys(D.rolling_coefs);
+  const rollColors = [CHART_COLORS.fv, CHART_COLORS.green, CHART_COLORS.orange, CHART_COLORS.purple];
+  STATE.charts.roll = new Chart(document.getElementById("chartRoll"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: rollKeys.map((key, i) => ({
+        label: key, data: D.rolling_coefs[key], borderColor: rollColors[i % 4],
+        borderWidth: 1.2, pointRadius: 0, spanGaps: true,
+      })),
+    },
+    options: CHART_OPTS,
+  });
+}
+
+// ════════════════════════════════════════
+// INTERACTION
+// ════════════════════════════════════════
+function switchPair(pair) {
+  STATE.active = pair;
+  render();
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+loadAll().catch(err => {
+  document.getElementById("app").innerHTML = `<div class="loading" style="color:var(--red)">Error: ${err.message}<br>Make sure main.py is running on port 5000</div>`;
+});
+</script>
+</body>
+</html>
